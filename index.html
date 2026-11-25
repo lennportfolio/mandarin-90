@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mandarin 90" />
+  <meta name="theme-color" content="#58CC02" />
+  <title>Mandarin 90 — China Survival A1</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      overscroll-behavior-y: none;
+    }
+    .safe-top { padding-top: env(safe-area-inset-top, 12px); }
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 12px); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop { animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    // Lightweight Lucide Icon wrapper for standalone HTML
+    const Icon = ({ name, size = 18, className = "" }) => {
+      const ref = useRef(null);
+      useEffect(() => {
+        if (ref.current && window.lucide && window.lucide.icons[name]) {
+          ref.current.innerHTML = '';
+          const svg = window.lucide.createElement(window.lucide.icons[name]);
+          svg.setAttribute('width', size);
+          svg.setAttribute('height', size);
+          if (className) svg.setAttribute('class', className);
+          ref.current.appendChild(svg);
+        }
+      }, [name, size, className]);
+      return <span ref={ref} className="inline-flex items-center justify-center shrink-0" />;
+    };
+
+    // ==================== CURRICULUM DATA (8 STAGES) ====================
+    const STAGES = [
+      {
+        id: 1,
+        title: "Tones & First Words",
+        subtitle: "Zero-to-one survival essentials",
+        color: "bg-[#58CC02]",
+        border: "border-[#46A302]",
+        text: "text-[#58CC02]",
+        bgLight: "bg-[#E5F8D8]",
+        badge: "STAGE 1",
+        words: [
+          { id: "w1", hanzi: "你好", pinyin: "nǐ hǎo", english: "Hello", hook: "Literally 'You good' — works everywhere.", tokens: ["你好"] },
+          { id: "w2", hanzi: "谢谢", pinyin: "xièxie", english: "Thank you", hook: "Sounds like 'shyeh-shyeh'.", tokens: ["谢谢"] },
+          { id: "w3", hanzi: "不客气", pinyin: "bú kèqi", english: "You're welcome", hook: "Literally 'No need to be polite'.", tokens: ["不", "客气"] },
+          { id: "w4", hanzi: "是", pinyin: "shì", english: "Yes / Am / Is", hook: "Pronounced like 'shir' with tongue curled.", tokens: ["是"] },
+          { id: "w5", hanzi: "不是", pinyin: "bú shì", english: "No / Is not", hook: "Put 'bú' in front to negate!", tokens: ["不是"] },
+          { id: "w6", hanzi: "再见", pinyin: "zàijiàn", english: "Goodbye", hook: "Literally 'Again see' (See you again).", tokens: ["再见"] }
+        ],
+        tasks: [
+          { id: "s1t1", title: "Ear & Tone Primer", type: "Intro + Listening", wordIds: ["w1", "w2", "w3"] },
+          { id: "s1t2", title: "Core Word Builder", type: "Pairs + Audio", wordIds: ["w4", "w5", "w6"] },
+          { id: "s1t3", title: "Greeting Reflexes", type: "Mixed Drill", wordIds: ["w1", "w2", "w3", "w6"] },
+          { id: "s1t4", title: "Yes & No Speed Check", type: "Audio + Tiles", wordIds: ["w1", "w4", "w5", "w6"] },
+          { id: "s1t5", title: "Stage 1 Mastery Boss", type: "Full Stage Test", wordIds: ["w1", "w2", "w3", "w4", "w5", "w6"] }
+        ]
+      },
+      {
+        id: 2,
+        title: "Polite Survival Shield",
+        subtitle: "Never panic when locals speak fast",
+        color: "bg-[#1CB0F6]",
+        border: "border-[#1899D6]",
+        text: "text-[#1CB0F6]",
+        bgLight: "bg-[#DDF4FF]",
+        badge: "STAGE 2",
+        words: [
+          { id: "w7", hanzi: "不好意思", pinyin: "bù hǎoyìsi", english: "Excuse me / Sorry", hook: "Your #1 magic phrase in China to get attention.", tokens: ["不好意思"] },
+          { id: "w8", hanzi: "我听不懂", pinyin: "wǒ tīng bù dǒng", english: "I don't understand", hook: "Wǒ (I) + tīng (hear) + bù dǒng (not understand).", tokens: ["我", "听不懂"] },
+          { id: "w9", hanzi: "请说慢一点", pinyin: "qǐng shuō màn yīdiǎn", english: "Please speak slower", hook: "Màn yīdiǎn = a little slower.", tokens: ["请", "说", "慢一点"] },
+          { id: "w10", hanzi: "我是英国人", pinyin: "wǒ shì Yīngguórén", english: "I am British", hook: "Swap Yīngguó for your country + rén (person).", tokens: ["我", "是", "英国人"] },
+          { id: "w11", hanzi: "你会说英语吗", pinyin: "nǐ huì shuō Yīngyǔ ma", english: "Can you speak English?", hook: "Adding 'ma' at the end turns any statement into a yes/no question!", tokens: ["你", "会说", "英语", "吗"] },
+          { id: "w12", hanzi: "没关系", pinyin: "méi guānxi", english: "No problem / It's okay", hook: "Essential polite reply when someone apologizes.", tokens: ["没关系"] }
+        ],
+        tasks: [
+          { id: "s2t1", title: "Getting Attention Politely", type: "Intro + Listening", wordIds: ["w7", "w8", "w12"] },
+          { id: "s2t2", title: "Slowing People Down", type: "Tiles + Audio", wordIds: ["w9", "w10", "w11"] },
+          { id: "s2t3", title: "The 'Ma' Question Trick", type: "Phrase Assembly", wordIds: ["w8", "w10", "w11"] },
+          { id: "s2t4", title: "Street Survival Speed", type: "Audio + Pairs", wordIds: ["w7", "w8", "w9", "w12"] },
+          { id: "s2t5", title: "Stage 2 Mastery Boss", type: "Full Stage Test", wordIds: ["w7", "w8", "w9", "w10", "w11", "w12"] }
+        ]
+      },
+      {
+        id: 3,
+        title: "Money & QR Payments",
+        subtitle: "Alipay, WeChat Pay & bargaining",
+        color: "bg-[#CE82FF]",
+        border: "border-[#A55EEA]",
+        text: "text-[#CE82FF]",
+        bgLight: "bg-[#F5E6FF]",
+        badge: "STAGE 3",
+        words: [
+          { id: "w13", hanzi: "多少钱", pinyin: "duōshao qián", english: "How much money?", hook: "Point at anything and say 'duōshao qián?'", tokens: ["多少", "钱"] },
+          { id: "w14", hanzi: "我要这个", pinyin: "wǒ yào zhège", english: "I want this one", hook: "Wǒ yào (I want) + zhège (this one).", tokens: ["我", "要", "这个"] },
+          { id: "w15", hanzi: "太贵了", pinyin: "tài guì le", english: "Too expensive!", hook: "Tài [adj] le = Too [adj]! Great for markets.", tokens: ["太", "贵", "了"] },
+          { id: "w16", hanzi: "便宜一点", pinyin: "piányi yīdiǎn", english: "A little cheaper", hook: "Pair with 'tài guì le' to bargain with a smile.", tokens: ["便宜", "一点"] },
+          { id: "w17", hanzi: "可以微信支付吗", pinyin: "kěyǐ Wēixìn zhīfù ma", english: "Can I pay with WeChat?", hook: "Wēixìn = WeChat, Zhīfùbǎo = Alipay.", tokens: ["可以", "微信支付", "吗"] },
+          { id: "w18", hanzi: "不要袋子", pinyin: "bú yào dàizi", english: "No bag needed", hook: "Cashiers ask this at every convenience store!", tokens: ["不要", "袋子"] }
+        ],
+        tasks: [
+          { id: "s3t1", title: "Asking Prices", type: "Intro + Listening", wordIds: ["w13", "w14", "w15"] },
+          { id: "s3t2", title: "QR Pay & Checkout", type: "Pairs + Tiles", wordIds: ["w16", "w17", "w18"] },
+          { id: "s3t3", title: "Market Bargaining Drill", type: "Phrase Assembly", wordIds: ["w13", "w15", "w16"] },
+          { id: "s3t4", title: "Convenience Store Rush", type: "Audio + Pairs", wordIds: ["w14", "w17", "w18"] },
+          { id: "s3t5", title: "Stage 3 Mastery Boss", type: "Full Stage Test", wordIds: ["w13", "w14", "w15", "w16", "w17", "w18"] }
+        ]
+      },
+      {
+        id: 4,
+        title: "Street Food & Coffee",
+        subtitle: "Ordering delicious meals without fear",
+        color: "bg-[#FF9600]",
+        border: "border-[#CC7800]",
+        text: "text-[#FF9600]",
+        bgLight: "bg-[#FFF0D6]",
+        badge: "STAGE 4",
+        words: [
+          { id: "w19", hanzi: "我要一杯咖啡", pinyin: "wǒ yào yī bēi kāfēi", english: "I want one cup of coffee", hook: "Kāfēi sounds just like 'coffee'!", tokens: ["我要", "一杯", "咖啡"] },
+          { id: "w20", hanzi: "不要辣", pinyin: "bú yào là", english: "No spicy, please", hook: "Crucial in Sichuan, Chongqing, or street stalls.", tokens: ["不要", "辣"] },
+          { id: "w21", hanzi: "冰水", pinyin: "bīng shuǐ", english: "Ice water", hook: "In China, water defaults to hot unless you ask for 'bīng shuǐ'.", tokens: ["冰", "水"] },
+          { id: "w22", hanzi: "很好吃", pinyin: "hěn hǎochī", english: "Very delicious!", hook: "Hǎochī = good-eat (delicious). Locals love hearing this!", tokens: ["很", "好吃"] },
+          { id: "w23", hanzi: "买单", pinyin: "mǎidān", english: "Check / Bill please", hook: "Raise your hand in a restaurant and say 'mǎidān!'", tokens: ["买单"] },
+          { id: "w24", hanzi: "洗手间在哪里", pinyin: "xǐshǒujiān zài nǎlǐ", english: "Where is the bathroom?", hook: "Xǐshǒujiān = wash-hands-room. Zài nǎlǐ = is where?", tokens: ["洗手间", "在哪里"] }
+        ],
+        tasks: [
+          { id: "s4t1", title: "Drinks & Spice Level", type: "Intro + Listening", wordIds: ["w19", "w20", "w21"] },
+          { id: "s4t2", title: "Restaurant Essentials", type: "Pairs + Tiles", wordIds: ["w22", "w23", "w24"] },
+          { id: "s4t3", title: "Customizing Your Order", type: "Phrase Assembly", wordIds: ["w19", "w20", "w21", "w22"] },
+          { id: "s4t4", title: "Table Service Listening", type: "Audio + Pairs", wordIds: ["w20", "w22", "w23", "w24"] },
+          { id: "s4t5", title: "Stage 4 Mastery Boss", type: "Full Stage Test", wordIds: ["w19", "w20", "w21", "w22", "w23", "w24"] }
+        ]
+      },
+      {
+        id: 5,
+        title: "Didi Taxis & Metro",
+        subtitle: "Navigating Chinese cities effortlessly",
+        color: "bg-[#FF4B4B]",
+        border: "border-[#D33131]",
+        text: "text-[#FF4B4B]",
+        bgLight: "bg-[#FFE5E5]",
+        badge: "STAGE 5",
+        words: [
+          { id: "w25", hanzi: "我想去这里", pinyin: "wǒ xiǎng qù zhèlǐ", english: "I want to go here", hook: "Show your phone map and say 'wǒ xiǎng qù zhèlǐ'.", tokens: ["我", "想去", "这里"] },
+          { id: "w26", hanzi: "地铁站", pinyin: "dìtiězhàn", english: "Subway / Metro station", hook: "Dìtiě = underground iron (subway).", tokens: ["地铁站"] },
+          { id: "w27", hanzi: "在这里停", pinyin: "zài zhèlǐ tíng", english: "Stop right here", hook: "Tell your Didi driver 'zài zhèlǐ tíng' when you arrive.", tokens: ["在", "这里", "停"] },
+          { id: "w28", hanzi: "左边", pinyin: "zuǒbiān", english: "Left side", hook: "Used for giving quick turn directions.", tokens: ["左边"] },
+          { id: "w29", hanzi: "右边", pinyin: "yòubiān", english: "Right side", hook: "Zuǒbiān (left) vs Yòubiān (right).", tokens: ["右边"] },
+          { id: "w30", hanzi: "直走", pinyin: "zhízǒu", english: "Go straight", hook: "Zhí (straight) + zǒu (walk/go).", tokens: ["直走"] }
+        ],
+        tasks: [
+          { id: "s5t1", title: "Getting in a Didi Taxi", type: "Intro + Listening", wordIds: ["w25", "w26", "w27"] },
+          { id: "s5t2", title: "Left, Right & Straight", type: "Pairs + Tiles", wordIds: ["w28", "w29", "w30"] },
+          { id: "s5t3", title: "Guiding the Driver", type: "Phrase Assembly", wordIds: ["w25", "w27", "w28", "w29"] },
+          { id: "s5t4", title: "Metro & Street Directions", type: "Audio + Pairs", wordIds: ["w26", "w28", "w29", "w30"] },
+          { id: "s5t5", title: "Stage 5 Mastery Boss", type: "Full Stage Test", wordIds: ["w25", "w26", "w27", "w28", "w29", "w30"] }
+        ]
+      },
+      {
+        id: 6,
+        title: "Hotel, SIM & Arrival",
+        subtitle: "First 48 hours after landing in China",
+        color: "bg-[#2B70C9]",
+        border: "border-[#1E5399]",
+        text: "text-[#2B70C9]",
+        bgLight: "bg-[#E2EEFF]",
+        badge: "STAGE 6",
+        words: [
+          { id: "w31", hanzi: "我有预订", pinyin: "wǒ yǒu yùdìng", english: "I have a reservation", hook: "Say this at hotel check-in with your passport.", tokens: ["我", "有", "预订"] },
+          { id: "w32", hanzi: "密码是多少", pinyin: "mìmǎ shì duōshao", english: "What is the Wi-Fi password?", hook: "Mìmǎ = secret code / password.", tokens: ["密码", "是", "多少"] },
+          { id: "w33", hanzi: "我想办电话卡", pinyin: "wǒ xiǎng bàn diànhuàkǎ", english: "I want to get a SIM card", hook: "Diànhuàkǎ = telephone card (SIM).", tokens: ["我想", "办", "电话卡"] },
+          { id: "w34", hanzi: "护照", pinyin: "hùzhào", english: "Passport", hook: "You'll need your hùzhào for hotels, trains, and SIM cards.", tokens: ["护照"] },
+          { id: "w35", hanzi: "帮帮我", pinyin: "bāngbāng wǒ", english: "Please help me", hook: "Warm, natural way to ask someone for a hand.", tokens: ["帮帮", "我"] },
+          { id: "w36", hanzi: "太好了", pinyin: "tài hǎo le", english: "Awesome / Great!", hook: "Celebrate when everything works smoothly!", tokens: ["太", "好了"] }
+        ],
+        tasks: [
+          { id: "s6t1", title: "Hotel Check-In & Wi-Fi", type: "Intro + Listening", wordIds: ["w31", "w32", "w34"] },
+          { id: "s6t2", title: "SIM Card & Getting Help", type: "Pairs + Tiles", wordIds: ["w33", "w35", "w36"] },
+          { id: "s6t3", title: "Airport & Lobby Setup", type: "Phrase Assembly", wordIds: ["w31", "w33", "w34"] },
+          { id: "s6t4", title: "Problem Solving Drill", type: "Audio + Pairs", wordIds: ["w32", "w35", "w36"] },
+          { id: "s6t5", title: "Stage 6 Mastery Boss", type: "Full Stage Test", wordIds: ["w31", "w32", "w33", "w34", "w35", "w36"] }
+        ]
+      },
+      {
+        id: 7,
+        title: "Social & Compliments",
+        subtitle: "Making friends, polite praise & WeChat",
+        color: "bg-[#FF6B9D]",
+        border: "border-[#D64576]",
+        text: "text-[#FF6B9D]",
+        bgLight: "bg-[#FFE6EF]",
+        badge: "STAGE 7",
+        words: [
+          { id: "w37", hanzi: "你很漂亮", pinyin: "nǐ hěn piàoliang", english: "You are very pretty", hook: "Genuine, polite compliment for women (piàoliang = pretty).", tokens: ["你", "很", "漂亮"] },
+          { id: "w38", hanzi: "你很帅", pinyin: "nǐ hěn shuài", english: "You are very handsome / cool", hook: "Used for guys—and also means 'stylish/cool'!", tokens: ["你", "很", "帅"] },
+          { id: "w39", hanzi: "你很有趣", pinyin: "nǐ hěn yǒuqù", english: "You are really fun / interesting", hook: "Great compliment during a coffee or bar chat.", tokens: ["你", "很", "有趣"] },
+          { id: "w40", hanzi: "认识你很高兴", pinyin: "rènshi nǐ hěn gāoxìng", english: "Nice to meet you", hook: "Rènshi (know/meet) + nǐ (you) + hěn gāoxìng (very happy).", tokens: ["认识你", "很", "高兴"] },
+          { id: "w41", hanzi: "你是哪里人", pinyin: "nǐ shì nǎlǐrén", english: "Where are you from?", hook: "Best icebreaker question when chatting with locals.", tokens: ["你", "是", "哪里人"] },
+          { id: "w42", hanzi: "我可以加你的微信吗", pinyin: "wǒ kěyǐ jiā nǐ de Wēixìn ma", english: "Can I add your WeChat?", hook: "In China, everyone exchanges WeChat QR codes instead of phone numbers.", tokens: ["我可以", "加", "你的微信", "吗"] }
+        ],
+        tasks: [
+          { id: "s7t1", title: "Polite Compliments", type: "Intro + Listening", wordIds: ["w37", "w38", "w39"] },
+          { id: "s7t2", title: "Icebreakers & WeChat", type: "Pairs + Tiles", wordIds: ["w40", "w41", "w42"] },
+          { id: "s7t3", title: "Smooth Introductions", type: "Phrase Assembly", wordIds: ["w37", "w40", "w41"] },
+          { id: "s7t4", title: "Social Listening Speed", type: "Audio + Pairs", wordIds: ["w38", "w39", "w42"] },
+          { id: "s7t5", title: "Stage 7 Mastery Boss", type: "Full Stage Test", wordIds: ["w37", "w38", "w39", "w40", "w41", "w42"] }
+        ]
+      },
+      {
+        id: 8,
+        title: "Everyday Items & Animals",
+        subtitle: "Common objects & pets in daily life",
+        color: "bg-[#00B894]",
+        border: "border-[#008E72]",
+        text: "text-[#00B894]",
+        bgLight: "bg-[#DFF9F2]",
+        badge: "STAGE 8",
+        words: [
+          { id: "w43", hanzi: "手机", pinyin: "shǒujī", english: "Mobile phone", hook: "Literally 'hand-machine' — your lifeline in China.", tokens: ["手机"] },
+          { id: "w44", hanzi: "钥匙", pinyin: "yàoshi", english: "Keys", hook: "Pronounced 'yow-shir' — don't lock yourself out!", tokens: ["钥匙"] },
+          { id: "w45", hanzi: "充电器", pinyin: "chōngdiànqì", english: "Phone charger", hook: "Chōngdiàn (charge electricity) + qì (device).", tokens: ["充电器"] },
+          { id: "w46", hanzi: "我的手机没有电了", pinyin: "wǒ de shǒujī méiyǒu diàn le", english: "My phone has no battery", hook: "Méiyǒu diàn le = out of electricity/battery.", tokens: ["我的手机", "没有电", "了"] },
+          { id: "w47", hanzi: "狗", pinyin: "gǒu", english: "Dog", hook: "Low dipping 3rd tone: 'gǒu'.", tokens: ["狗"] },
+          { id: "w48", hanzi: "猫", pinyin: "māo", english: "Cat", hook: "High flat 1st tone: 'māo' — sounds like 'meow'!", tokens: ["猫"] },
+          { id: "w49", hanzi: "鸟", pinyin: "niǎo", english: "Bird", hook: "Many retirees walk pet birds in Chinese parks!", tokens: ["鸟"] },
+          { id: "w50", hanzi: "雨伞", pinyin: "yǔsǎn", english: "Umbrella", hook: "Yǔ (rain) + sǎn (umbrella).", tokens: ["雨伞"] }
+        ],
+        tasks: [
+          { id: "s8t1", title: "Daily Essentials", type: "Intro + Listening", wordIds: ["w43", "w44", "w45", "w50"] },
+          { id: "s8t2", title: "Common Animals", type: "Pairs + Audio", wordIds: ["w47", "w48", "w49"] },
+          { id: "s8t3", title: "Battery Emergency!", type: "Phrase Assembly", wordIds: ["w43", "w45", "w46"] },
+          { id: "s8t4", title: "Objects & Pets Blitz", type: "Audio + Pairs", wordIds: ["w44", "w47", "w48", "w50"] },
+          { id: "s8t5", title: "Stage 8 Mastery Boss", type: "Full Stage Test", wordIds: ["w43", "w44", "w45", "w46", "w47", "w48", "w49", "w50"] }
+        ]
+      }
+    ];
+
+    const ALL_WORDS = STAGES.flatMap(s => s.words.map(w => ({ ...w, stageId: s.id, stageTitle: s.title })));
+
+    const ROLEPLAY_SCENARIOS = [
+      {
+        id: "coffee",
+        title: "Coffee Shop & Making a Friend",
+        npc: "Lin (Shanghai Café)",
+        emoji: "☕",
+        opening: {
+          hanzi: "你好！欢迎光临，你想喝点什么？",
+          pinyin: "Nǐ hǎo! Huānyíng guānglín, nǐ xiǎng hē diǎn shénme?",
+          english: "Hello! Welcome, what would you like to drink?"
+        },
+        turns: [
+          {
+            userOptions: [
+              { hanzi: "你好，我要一杯冰咖啡。", pinyin: "Nǐ hǎo, wǒ yào yī bēi bīng kāfēi.", english: "Hello, I want one iced coffee." },
+              { hanzi: "不好意思，你很漂亮！我想要一杯咖啡。", pinyin: "Bù hǎoyìsi, nǐ hěn piàoliang! Wǒ xiǎng yào yī bēi kāfēi.", english: "Excuse me, you're very pretty! I'd like a coffee." }
+            ],
+            npcReply: {
+              hanzi: "谢谢！你太客气了。你是哪里人？",
+              pinyin: "Xièxie! Nǐ tài kèqi le. Nǐ shì nǎlǐrén?",
+              english: "Thank you! You're too kind. Where are you from?"
+            }
+          },
+          {
+            userOptions: [
+              { hanzi: "我是英国人。认识你很高兴！", pinyin: "Wǒ shì Yīngguórén. Rènshi nǐ hěn gāoxìng!", english: "I am British. Nice to meet you!" },
+              { hanzi: "我是英国人，我可以加你的微信吗？", pinyin: "Wǒ shì Yīngguórén, wǒ kěyǐ jiā nǐ de Wēixìn ma?", english: "I am British, can I add your WeChat?" }
+            ],
+            npcReply: {
+              hanzi: "认识你也很高兴！可以呀，扫我的微信吧！",
+              pinyin: "Rènshi nǐ yě hěn gāoxìng! Kěyǐ ya, sǎo wǒ de Wēixìn ba!",
+              english: "Nice to meet you too! Sure, scan my WeChat!"
+            }
+          }
+        ]
+      },
+      {
+        id: "streetfood",
+        title: "Chengdu Street Noodles",
+        npc: "Uncle Wang (Noodle Stall)",
+        emoji: "🍜",
+        opening: {
+          hanzi: "帅哥你好！吃面吗？要辣吗？",
+          pinyin: "Shuàigē nǐ hǎo! Chī miàn ma? Yào là ma?",
+          english: "Hey handsome! Having noodles? Want spicy?"
+        },
+        turns: [
+          {
+            userOptions: [
+              { hanzi: "你好！我要这个，不要辣。", pinyin: "Nǐ hǎo! Wǒ yào zhège, bú yào là.", english: "Hello! I want this one, no spicy." },
+              { hanzi: "不好意思，我听不懂，请说慢一点。", pinyin: "Bù hǎoyìsi, wǒ tīng bù dǒng, qǐng shuō màn yīdiǎn.", english: "Sorry, I don't understand, please speak slower." }
+            ],
+            npcReply: {
+              hanzi: "好的，不要辣！一共十五块钱。",
+              pinyin: "Hǎo de, bú yào là! Yīgòng shíwǔ kuài qián.",
+              english: "Okay, no spicy! 15 yuan in total."
+            }
+          },
+          {
+            userOptions: [
+              { hanzi: "可以微信支付吗？谢谢！", pinyin: "Kěyǐ Wēixìn zhīfù ma? Xièxie!", english: "Can I pay with WeChat? Thanks!" },
+              { hanzi: "很好吃！买单，谢谢！", pinyin: "Hěn hǎochī! Mǎidān, xièxie!", english: "Very delicious! Check please, thanks!" }
+            ],
+            npcReply: {
+              hanzi: "可以！扫这里，慢走再见！",
+              pinyin: "Kěyǐ! Sǎo zhèlǐ, màn zǒu zàijiàn!",
+              english: "Yes! Scan here, take care and goodbye!"
+            }
+          }
+        ]
+      },
+      {
+        id: "didi",
+        title: "Didi Taxi to the Metro",
+        npc: "Master Liu (Didi Driver)",
+        emoji: "🚕",
+        opening: {
+          hanzi: "你好，请问去哪里？",
+          pinyin: "Nǐ hǎo, qǐngwèn qù nǎlǐ?",
+          english: "Hello, where are you heading?"
+        },
+        turns: [
+          {
+            userOptions: [
+              { hanzi: "你好，我想去地铁站。", pinyin: "Nǐ hǎo, wǒ xiǎng qù dìtiězhàn.", english: "Hello, I want to go to the subway station." },
+              { hanzi: "你好，我想去这里。", pinyin: "Nǐ hǎo, wǒ xiǎng qù zhèlǐ.", english: "Hello, I want to go here." }
+            ],
+            npcReply: {
+              hanzi: "没问题，直走然后左边停对吗？",
+              pinyin: "Méi wèntí, zhízǒu ránhòu zuǒbiān tíng duì ma?",
+              english: "No problem, go straight then stop on the left, right?"
+            }
+          },
+          {
+            userOptions: [
+              { hanzi: "对，在这里停！谢谢师傅！", pinyin: "Duì, zài zhèlǐ tíng! Xièxie shīfu!", english: "Yes, stop right here! Thanks driver!" },
+              { hanzi: "不好意思，我的手机没有电了！", pinyin: "Bù hǎoyìsi, wǒ de shǒujī méiyǒu diàn le!", english: "Excuse me, my phone has no battery!" }
+            ],
+            npcReply: {
+              hanzi: "没关系，我有充电器！到了，再见！",
+              pinyin: "Méi guānxi, wǒ yǒu chōngdiànqì! Dào le, zàijiàn!",
+              english: "No problem, I have a charger! We've arrived, bye!"
+            }
+          }
+        ]
+      }
+    ];
+
+    // ==================== SPEECH HELPER ====================
+    function speakMandarin(text, rate = 0.85) {
+      if (!("speechSynthesis" in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = "zh-CN";
+      utter.rate = rate;
+      const voices = window.speechSynthesis.getVoices();
+      const zhVoice = voices.find(v => v.lang.includes("zh-CN") || v.lang.includes("zh"));
+      if (zhVoice) utter.voice = zhVoice;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // ==================== LESSON QUESTION BUILDER ====================
+    function buildLessonDeck(wordIds, includeIntros = true) {
+      const targetWords = wordIds.map(id => ALL_WORDS.find(w => w.id === id)).filter(Boolean);
+      const deck = [];
+
+      if (includeIntros) {
+        targetWords.slice(0, 3).forEach(w => {
+          deck.push({ kind: "intro", word: w });
+        });
+      }
+
+      targetWords.forEach((w, idx) => {
+        const distractors = ALL_WORDS.filter(x => x.id !== w.id)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        const options = [w, ...distractors].sort(() => Math.random() - 0.5);
+
+        if (idx % 3 === 0) {
+          deck.push({
+            kind: "listen_choose",
+            word: w,
+            options
+          });
+        } else if (idx % 3 === 1 && w.tokens && w.tokens.length >= 2) {
+          const extraTokens = ["的", "很", "不", "吗"].filter(t => !w.tokens.includes(t)).slice(0, 2);
+          deck.push({
+            kind: "tile_build",
+            word: w,
+            bank: [...w.tokens, ...extraTokens].sort(() => Math.random() - 0.5)
+          });
+        } else {
+          deck.push({
+            kind: "meaning_choose",
+            word: w,
+            options
+          });
+        }
+      });
+
+      // Add a matching pairs round
+      const pairWords = targetWords.slice(0, 4);
+      if (pairWords.length >= 3) {
+        deck.push({
+          kind: "pairs",
+          words: pairWords
+        });
+      }
+
+      return deck;
+    }
+
+    // ==================== MAIN APP COMPONENT ====================
+    function App() {
+      const STORAGE_KEY = "mandarin90_v3_progress";
+
+      const [progress, setProgress] = useState(() => {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) return JSON.parse(saved);
+        } catch (e) {}
+        return {
+          xp: 0,
+          streak: 1,
+          lastActiveDate: new Date().toDateString(),
+          taskScores: {}, // { s1t1: 100 }
+          wordStats: {}   // { w1: { correct: 2, wrong: 0 } }
+        };
+      });
+
+      useEffect(() => {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+        } catch (e) {}
+      }, [progress]);
+
+      const [activeTab, setActiveTab] = useState("path"); // path | practice | speak | plan
+      const [activeLesson, setActiveLesson] = useState(null); // { title, badge, taskId?, deck }
+      const [showBackupModal, setShowBackupModal] = useState(false);
+      const [importText, setImportText] = useState("");
+      const [copyNotice, setCopyNotice] = useState("");
+
+      // Preload voices on iOS Safari
+      useEffect(() => {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.getVoices();
+        }
+      }, []);
+
+      // Stage unlock check: Stage 1 always unlocked; Stage N unlocks when all 5 tasks of Stage N-1 >= 80%
+      const isStageUnlocked = (stageIndex) => {
+        if (stageIndex === 0) return true;
+        const prevStage = STAGES[stageIndex - 1];
+        return prevStage.tasks.every(t => (progress.taskScores[t.id] || 0) >= 80);
+      };
+
+      const startTaskLesson = (stage, task) => {
+        const deck = buildLessonDeck(task.wordIds, true);
+        setActiveLesson({
+          title: task.title,
+          badge: `${stage.badge} • ${task.type}`,
+          taskId: task.id,
+          deck
+        });
+      };
+
+      const startPracticeMode = (mode) => {
+        let chosenWords = [];
+        if (mode === "weak") {
+          const scored = ALL_WORDS.map(w => {
+            const st = progress.wordStats[w.id] || { correct: 0, wrong: 0 };
+            const ratio = st.correct - st.wrong * 2;
+            return { w, ratio };
+          }).sort((a, b) => a.ratio - b.ratio);
+          chosenWords = scored.slice(0, 6).map(x => x.w.id);
+        } else if (mode === "compliments") {
+          chosenWords = STAGES[6].words.map(w => w.id);
+        } else if (mode === "items") {
+          chosenWords = STAGES[7].words.slice(0, 6).map(w => w.id);
+        } else {
+          chosenWords = [...ALL_WORDS].sort(() => Math.random() - 0.5).slice(0, 6).map(w => w.id);
+        }
+
+        const titles = {
+          weak: "Weak Words Blitz",
+          random: "Memory Refresh Quiz",
+          compliments: "Social & Compliments Drill",
+          items: "Daily Items & Animals Drill"
+        };
+
+        setActiveLesson({
+          title: titles[mode] || "Unlimited Practice",
+          badge: "∞ UNLIMITED PRACTICE",
+          taskId: null,
+          deck: buildLessonDeck(chosenWords, false)
+        });
+      };
+
+      const handleLessonComplete = (accuracy, sessionWordResults) => {
+        setProgress(prev => {
+          const today = new Date().toDateString();
+          const newTaskScores = { ...prev.taskScores };
+          if (activeLesson?.taskId) {
+            const oldBest = newTaskScores[activeLesson.taskId] || 0;
+            newTaskScores[activeLesson.taskId] = Math.max(oldBest, accuracy);
+          }
+          const newWordStats = { ...prev.wordStats };
+          Object.entries(sessionWordResults).forEach(([wid, res]) => {
+            const cur = newWordStats[wid] || { correct: 0, wrong: 0 };
+            newWordStats[wid] = {
+              correct: cur.correct + res.correct,
+              wrong: cur.wrong + res.wrong
+            };
+          });
+          return {
+            ...prev,
+            xp: prev.xp + Math.max(15, Math.round(accuracy * 0.4)),
+            streak: prev.lastActiveDate === today ? prev.streak : prev.streak + 1,
+            lastActiveDate: today,
+            taskScores: newTaskScores,
+            wordStats: newWordStats
+          };
+        });
+        setActiveLesson(null);
+      };
+
+      const masteredTasksCount = Object.values(progress.taskScores).filter(s => s >= 80).length;
+      const totalTasksCount = STAGES.reduce((acc, s) => acc + s.tasks.length, 0);
+
+      const copySaveCode = () => {
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(progress))));
+        navigator.clipboard?.writeText(encoded);
+        setCopyNotice("Copied! Paste this code into Apple Notes to keep a backup.");
+        setTimeout(() => setCopyNotice(""), 4000);
+      };
+
+      const restoreSaveCode = () => {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(escape(atob(importText.trim()))));
+          if (decoded && typeof decoded.xp === "number") {
+            setProgress(decoded);
+            setImportText("");
+            setCopyNotice("Progress restored successfully!");
+            setTimeout(() => setCopyNotice(""), 3000);
+          } else {
+            setCopyNotice("Invalid save code format.");
+          }
+        } catch (e) {
+          setCopyNotice("Could not read save code. Check that you copied the full text.");
+        }
+      };
+
+      return (
+        <div className="min-h-[100dvh] w-full bg-slate-950 flex justify-center items-center sm:py-4">
+          {/* iPhone Container Frame */}
+          <div className="w-full sm:w-[393px] h-[100dvh] sm:h-[852px] bg-[#F7F9FA] sm:rounded-[44px] sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col overflow-hidden relative">
+            
+            {/* Top Status & Stats Bar */}
+            <header className="bg-white border-b-2 border-slate-200 px-4 pt-3 pb-2.5 safe-top flex items-center justify-between shrink-0 z-10">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-orange-50 border border-orange-200 px-2.5 py-1 rounded-xl">
+                  <span className="text-base">🔥</span>
+                  <span className="font-extrabold text-orange-600 text-sm">{progress.streak}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-xl">
+                  <span className="text-base">⚡</span>
+                  <span className="font-extrabold text-amber-600 text-sm">{progress.xp} XP</span>
+                </div>
+                <div className="flex items-center gap-1 bg-sky-50 border border-sky-200 px-2.5 py-1 rounded-xl">
+                  <span className="font-black text-sky-600 text-sm">∞</span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowBackupModal(true)}
+                className="flex items-center gap-1.5 bg-slate-100 active:translate-y-0.5 border-b-2 border-slate-300 px-2.5 py-1.5 rounded-xl text-xs font-extrabold text-slate-700"
+              >
+                <Icon name="Smartphone" size={14} />
+                <span>Save & iPhone</span>
+              </button>
+            </header>
+
+            {/* Main Viewport */}
+            <main className="flex-1 overflow-y-auto no-scrollbar pb-24">
+              {activeTab === "path" && (
+                <PathView
+                  stages={STAGES}
+                  taskScores={progress.taskScores}
+                  isStageUnlocked={isStageUnlocked}
+                  onStartTask={startTaskLesson}
+                  masteredTasksCount={masteredTasksCount}
+                  totalTasksCount={totalTasksCount}
+                />
+              )}
+              {activeTab === "practice" && (
+                <PracticeView
+                  progress={progress}
+                  onStartPractice={startPracticeMode}
+                />
+              )}
+              {activeTab === "speak" && (
+                <SpeakView />
+              )}
+              {activeTab === "plan" && (
+                <PlanView
+                  masteredTasksCount={masteredTasksCount}
+                  totalTasksCount={totalTasksCount}
+                />
+              )}
+            </main>
+
+            {/* Bottom Navigation Bar */}
+            <nav className="bg-white border-t-2 border-slate-200 px-2 pt-2 pb-3 safe-bottom flex justify-around items-center shrink-0 z-10">
+              {[
+                { id: "path", label: "Path", icon: "Map" },
+                { id: "practice", label: "Practice", icon: "Dumbbell" },
+                { id: "speak", label: "Speak", icon: "MessageCircle" },
+                { id: "plan", label: "90-Day", icon: "Calendar" }
+              ].map(tab => {
+                const active = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex flex-col items-center justify-center w-16 py-1.5 rounded-2xl transition-all ${
+                      active
+                        ? "bg-[#DDF4FF] text-[#1CB0F6] border-2 border-[#84D8FF]"
+                        : "text-slate-400 hover:text-slate-600"
+                    }`}
+                  >
+                    <Icon name={tab.icon} size={20} />
+                    <span className="text-[11px] font-extrabold mt-0.5">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Fullscreen Lesson Modal */}
+            {activeLesson && (
+              <LessonRunner
+                lesson={activeLesson}
+                onClose={() => setActiveLesson(null)}
+                onComplete={handleLessonComplete}
+              />
+            )}
+
+            {/* iPhone Setup & Backup Modal */}
+            {showBackupModal && (
+              <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center p-3">
+                <div className="bg-white w-full rounded-3xl p-5 border-2 border-slate-200 shadow-2xl animate-pop max-h-[90%] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-black text-slate-800">📱 iPhone App & Save Backup</h2>
+                    <button
+                      onClick={() => setShowBackupModal(false)}
+                      className="p-1.5 rounded-xl bg-slate-100 text-slate-600 font-bold"
+                    >
+                      <Icon name="X" size={18} />
+                    </button>
+                  </div>
+
+                  <div className="bg-sky-50 border-2 border-sky-200 rounded-2xl p-3.5 mb-4 text-xs text-slate-700 space-y-1.5">
+                    <p className="font-black text-sky-800 text-sm">Install on Your iPhone Home Screen:</p>
+                    <p>1. Open your GitHub Pages link in <strong>Safari</strong> (not Private mode).</p>
+                    <p>2. Tap the <strong>Share</strong> icon (square with upward arrow).</p>
+                    <p>3. Scroll down and tap <strong>Add to Home Screen</strong>.</p>
+                    <p className="text-sky-700 font-semibold pt-1">iOS saves your XP, streak, and 80%+ stage badges automatically on your phone!</p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-700 mb-1.5">Backup Save Code (Optional Cloud Sync)</p>
+                      <button
+                        onClick={copySaveCode}
+                        className="w-full py-3 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] active:border-b-0 active:translate-y-1 text-white font-black text-sm"
+                      >
+                        Copy My Progress Save Code
+                      </button>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-extrabold text-slate-700 mb-1">Restore From Save Code:</p>
+                      <div className="flex gap-2">
+                        <input
+                          value={importText}
+                          onChange={e => setImportText(e.target.value)}
+                          placeholder="Paste save code here..."
+                          className="flex-1 px-3 py-2 rounded-xl border-2 border-slate-200 text-xs"
+                        />
+                        <button
+                          onClick={restoreSaveCode}
+                          className="px-4 py-2 rounded-xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white font-extrabold text-xs"
+                        >
+                          Restore
+                        </button>
+                      </div>
+                    </div>
+
+                    {copyNotice && (
+                      <p className="text-xs font-bold text-emerald-700 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                        {copyNotice}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // ==================== 1. WINDING STAGE MAP VIEW ====================
+    function PathView({ stages, taskScores, isStageUnlocked, onStartTask, masteredTasksCount, totalTasksCount }) {
+      const offsets = ["translate-x-0", "-translate-x-10", "-translate-x-14", "-translate-x-6", "translate-x-6"];
+
+      return (
+        <div className="px-4 pt-4 space-y-6">
+          {/* Overall Mastery Progress Card */}
+          <div className="bg-white rounded-3xl p-4 border-2 border-slate-200 shadow-xs">
+            <div className="flex justify-between items-center mb-1.5">
+              <span className="text-xs font-black uppercase tracking-wider text-slate-400">China Survival Readiness</span>
+              <span className="text-xs font-black text-[#58CC02]">{masteredTasksCount} / {totalTasksCount} Tasks ≥ 80%</span>
+            </div>
+            <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#58CC02] rounded-full transition-all duration-500"
+                style={{ width: `${Math.round((masteredTasksCount / totalTasksCount) * 100)}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 font-semibold mt-2">
+              Score <strong className="text-slate-700">80% or higher</strong> on all 5 daily tasks in a Stage to unlock the next Stage.
+            </p>
+          </div>
+
+          {/* Stages & Winding Nodes */}
+          {stages.map((stage, sIdx) => {
+            const unlocked = isStageUnlocked(sIdx);
+            const stageMasteredCount = stage.tasks.filter(t => (taskScores[t.id] || 0) >= 80).length;
+
+            return (
+              <div key={stage.id} className="space-y-4">
+                {/* Stage Banner */}
+                <div className={`${unlocked ? stage.color : "bg-slate-300"} rounded-3xl p-4 text-white shadow-sm border-b-4 ${unlocked ? stage.border : "border-slate-400"}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-black uppercase tracking-widest bg-black/15 px-2.5 py-0.5 rounded-full">
+                      {stage.badge} • {stageMasteredCount}/5 Mastered
+                    </span>
+                    {!unlocked && <Icon name="Lock" size={16} />}
+                  </div>
+                  <h2 className="text-lg font-black mt-1">{stage.title}</h2>
+                  <p className="text-xs font-semibold text-white/90">{stage.subtitle}</p>
+                </div>
+
+                {/* 5 Winding Task Nodes */}
+                <div className="flex flex-col items-center py-2 space-y-4">
+                  {stage.tasks.map((task, tIdx) => {
+                    const bestScore = taskScores[task.id] || 0;
+                    const isMastered = bestScore >= 80;
+                    const prevTaskPassed = tIdx === 0 || (taskScores[stage.tasks[tIdx - 1].id] || 0) >= 80;
+                    const nodePlayable = unlocked && prevTaskPassed;
+                    const isBoss = tIdx === 4;
+
+                    return (
+                      <div key={task.id} className={`flex flex-col items-center ${offsets[tIdx % offsets.length]}`}>
+                        <button
+                          disabled={!nodePlayable}
+                          onClick={() => onStartTask(stage, task)}
+                          className={`relative w-20 h-20 rounded-full flex flex-col items-center justify-center border-b-[6px] transition-all ${
+                            isMastered
+                              ? "bg-[#FFC800] border-[#D9A600] text-amber-950 active:translate-y-1 active:border-b-0"
+                              : nodePlayable
+                              ? `${stage.color} ${stage.border} text-white active:translate-y-1 active:border-b-0 shadow-md`
+                              : "bg-slate-200 border-slate-300 text-slate-400 cursor-not-allowed"
+                          }`}
+                        >
+                          {isMastered ? (
+                            <Icon name="Crown" size={28} />
+                          ) : !nodePlayable ? (
+                            <Icon name="Lock" size={24} />
+                          ) : isBoss ? (
+                            <Icon name="Trophy" size={28} />
+                          ) : (
+                            <Icon name="Star" size={28} />
+                          )}
+                          <span className="text-[10px] font-black mt-0.5">
+                            {bestScore > 0 ? `${bestScore}%` : `Task ${tIdx + 1}`}
+                          </span>
+                        </button>
+
+                        <div className="mt-1.5 text-center max-w-[165px]">
+                          <p className={`text-xs font-extrabold leading-tight ${nodePlayable ? "text-slate-800" : "text-slate-400"}`}>
+                            {task.title}
+                          </p>
+                          <p className="text-[10px] font-bold text-slate-400">{task.type}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // ==================== 2. UNLIMITED PRACTICE HUB ====================
+    function PracticeView({ progress, onStartPractice }) {
+      const [search, setSearch] = useState("");
+      const filteredWords = useMemo(() => {
+        const q = search.trim().toLowerCase();
+        if (!q) return ALL_WORDS;
+        return ALL_WORDS.filter(
+          w =>
+            w.hanzi.includes(q) ||
+            w.pinyin.toLowerCase().includes(q) ||
+            w.english.toLowerCase().includes(q)
+        );
+      }, [search]);
+
+      return (
+        <div className="px-4 pt-4 space-y-4">
+          <div className="bg-white rounded-3xl p-4 border-2 border-slate-200">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-black text-slate-800">∞ Unlimited Practice Gym</h2>
+              <span className="text-xs font-black bg-sky-100 text-sky-700 px-2.5 py-1 rounded-full">No Limits</span>
+            </div>
+            <p className="text-xs text-slate-500 font-semibold">
+              Re-jog your memory anytime. Drill weak words, polite compliments, or daily vocabulary on repeat.
+            </p>
+          </div>
+
+          {/* 4 Quick Quiz Launchers */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => onStartPractice("weak")}
+              className="bg-rose-500 border-b-4 border-rose-700 active:translate-y-1 active:border-b-0 rounded-2xl p-3.5 text-left text-white"
+            >
+              <span className="text-xl">🎯</span>
+              <p className="font-black text-sm mt-1">Weak Words Blitz</p>
+              <p className="text-[11px] text-white/90 font-semibold">Target missed phrases</p>
+            </button>
+
+            <button
+              onClick={() => onStartPractice("random")}
+              className="bg-[#1CB0F6] border-b-4 border-[#1899D6] active:translate-y-1 active:border-b-0 rounded-2xl p-3.5 text-left text-white"
+            >
+              <span className="text-xl">🧠</span>
+              <p className="font-black text-sm mt-1">Memory Refresh</p>
+              <p className="text-[11px] text-white/90 font-semibold">Random 6-word quiz</p>
+            </button>
+
+            <button
+              onClick={() => onStartPractice("compliments")}
+              className="bg-[#FF6B9D] border-b-4 border-[#D64576] active:translate-y-1 active:border-b-0 rounded-2xl p-3.5 text-left text-white"
+            >
+              <span className="text-xl">✨</span>
+              <p className="font-black text-sm mt-1">Compliments Drill</p>
+              <p className="text-[11px] text-white/90 font-semibold">Polite chat & WeChat</p>
+            </button>
+
+            <button
+              onClick={() => onStartPractice("items")}
+              className="bg-[#00B894] border-b-4 border-[#008E72] active:translate-y-1 active:border-b-0 rounded-2xl p-3.5 text-left text-white"
+            >
+              <span className="text-xl">🐾</span>
+              <p className="font-black text-sm mt-1">Items & Animals</p>
+              <p className="text-[11px] text-white/90 font-semibold">Phone, keys, dog, cat</p>
+            </button>
+          </div>
+
+          {/* Instant Audio Phrasebook */}
+          <div className="bg-white rounded-3xl p-4 border-2 border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-slate-800 text-sm">Tap-to-Hear Phrasebook ({ALL_WORDS.length})</h3>
+            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search English, Pinyin, or Hanzi..."
+              className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-100 border-2 border-slate-200 text-xs font-semibold focus:outline-none focus:border-[#1CB0F6]"
+            />
+
+            <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+              {filteredWords.map(w => (
+                <div
+                  key={w.id}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-black text-slate-800">{w.hanzi}</span>
+                      <span className="text-xs font-extrabold text-[#1CB0F6]">{w.pinyin}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-slate-600">{w.english}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => speakMandarin(w.hanzi, 0.58)}
+                      className="px-2.5 py-2 rounded-xl bg-amber-100 text-amber-800 font-black text-xs active:scale-95"
+                      title="Slow A1 Speed"
+                    >
+                      🐢
+                    </button>
+                    <button
+                      onClick={() => speakMandarin(w.hanzi, 0.9)}
+                      className="p-2 rounded-xl bg-[#DDF4FF] text-[#1CB0F6] active:scale-95"
+                      title="Normal Speed"
+                    >
+                      <Icon name="Volume2" size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ==================== 3. AI CHINA ROLEPLAY SIMULATOR ====================
+    function SpeakView() {
+      const [selectedScenario, setSelectedScenario] = useState(ROLEPLAY_SCENARIOS[0]);
+      const [turnIndex, setTurnIndex] = useState(0);
+      const [chatHistory, setChatHistory] = useState([
+        { sender: "npc", ...ROLEPLAY_SCENARIOS[0].opening }
+      ]);
+
+      const chooseScenario = (sc) => {
+        setSelectedScenario(sc);
+        setTurnIndex(0);
+        setChatHistory([{ sender: "npc", ...sc.opening }]);
+        speakMandarin(sc.opening.hanzi, 0.85);
+      };
+
+      const handleReply = (opt) => {
+        speakMandarin(opt.hanzi, 0.88);
+        const currentTurn = selectedScenario.turns[turnIndex];
+        const nextHistory = [
+          ...chatHistory,
+          { sender: "user", ...opt },
+          { sender: "npc", ...currentTurn.npcReply }
+        ];
+        setChatHistory(nextHistory);
+        setTurnIndex(prev => prev + 1);
+        setTimeout(() => speakMandarin(currentTurn.npcReply.hanzi, 0.85), 900);
+      };
+
+      const activeTurn = selectedScenario.turns[turnIndex];
+
+      return (
+        <div className="px-4 pt-4 space-y-4">
+          {/* Scenario Selector Pills */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+            {ROLEPLAY_SCENARIOS.map(sc => {
+              const active = sc.id === selectedScenario.id;
+              return (
+                <button
+                  key={sc.id}
+                  onClick={() => chooseScenario(sc)}
+                  className={`shrink-0 px-3.5 py-2 rounded-2xl border-b-4 text-xs font-black flex items-center gap-1.5 ${
+                    active
+                      ? "bg-[#1CB0F6] border-[#1899D6] text-white"
+                      : "bg-white border-slate-200 text-slate-700"
+                  }`}
+                >
+                  <span>{sc.emoji}</span>
+                  <span>{sc.title}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Chat Feed */}
+          <div className="bg-white rounded-3xl p-4 border-2 border-slate-200 space-y-3 min-h-[290px]">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-xs font-black text-slate-700">{selectedScenario.emoji} {selectedScenario.npc}</span>
+              <button
+                onClick={() => chooseScenario(selectedScenario)}
+                className="text-[11px] font-extrabold text-[#1CB0F6]"
+              >
+                Restart Chat
+              </button>
+            </div>
+
+            {chatHistory.map((msg, i) => (
+              <div key={i} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
+                <div
+                  onClick={() => speakMandarin(msg.hanzi, 0.85)}
+                  className={`max-w-[85%] rounded-2xl p-3 cursor-pointer ${
+                    msg.sender === "user"
+                      ? "bg-[#58CC02] text-white rounded-br-xs"
+                      : "bg-slate-100 text-slate-800 rounded-bl-xs"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-black text-base">{msg.hanzi}</p>
+                    <Icon name="Volume2" size={15} />
+                  </div>
+                  <p className={`text-xs font-bold mt-0.5 ${msg.sender === "user" ? "text-white/95" : "text-[#1CB0F6]"}`}>
+                    {msg.pinyin}
+                  </p>
+                  <p className={`text-[11px] mt-0.5 ${msg.sender === "user" ? "text-white/85" : "text-slate-500"}`}>
+                    {msg.english}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Zero-Word Guided Reply Buttons */}
+          {activeTurn ? (
+            <div className="space-y-2">
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider px-1">
+                Tap to Listen & Reply Out Loud:
+              </p>
+              {activeTurn.userOptions.map((opt, idx) => (
+                <div key={idx} className="bg-white rounded-2xl p-3 border-2 border-slate-200 flex items-center justify-between gap-2">
+                  <div className="flex-1">
+                    <p className="font-black text-slate-800 text-sm">{opt.hanzi}</p>
+                    <p className="text-xs font-bold text-[#1CB0F6]">{opt.pinyin}</p>
+                    <p className="text-[11px] text-slate-500">{opt.english}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => speakMandarin(opt.hanzi, 0.65)}
+                      className="p-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs"
+                      title="Preview Audio"
+                    >
+                      🔊
+                    </button>
+                    <button
+                      onClick={() => handleReply(opt)}
+                      className="px-3.5 py-2.5 rounded-xl bg-[#58CC02] border-b-4 border-[#46A302] active:translate-y-0.5 text-white font-black text-xs"
+                    >
+                      Say It
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-4 text-center space-y-2">
+              <p className="font-black text-emerald-800 text-sm">🎉 Scenario Complete!</p>
+              <p className="text-xs text-emerald-700">Try another scenario above or repeat this one to build muscle memory.</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ==================== 4. 90-DAY SPRINT ROADMAP ====================
+    function PlanView({ masteredTasksCount, totalTasksCount }) {
+      const phases = [
+        {
+          weeks: "Days 1 – 20",
+          title: "Stages 1–2: Ear Training & Survival Shield",
+          desc: "Master the 4 Mandarin tones, greetings, and polite survival phrases so you never freeze when locals speak fast."
+        },
+        {
+          weeks: "Days 21 – 45",
+          title: "Stages 3–4: Payments & Ordering Food",
+          desc: "Handle WeChat Pay/Alipay checkouts, bargaining at markets, ordering coffee, and customizing spice levels."
+        },
+        {
+          weeks: "Days 46 – 70",
+          title: "Stages 5–6: Didi Taxis, Hotels & SIM Cards",
+          desc: "Navigate subways, give left/right/stop directions to drivers, check into hotels, and set up your Chinese SIM."
+        },
+        {
+          weeks: "Days 71 – 90",
+          title: "Stages 7–8: Social Compliments & Daily Life",
+          desc: "Give polite compliments, exchange WeChat contacts, and talk effortlessly about everyday items and pets."
+        }
+      ];
+
+      return (
+        <div className="px-4 pt-4 space-y-4">
+          <div className="bg-gradient-to-br from-[#58CC02] to-[#3B9E00] rounded-3xl p-4 text-white border-b-4 border-[#2E7D00]">
+            <span className="text-[11px] font-black uppercase tracking-widest bg-white/20 px-2.5 py-0.5 rounded-full">
+              90-Day China Blueprint
+            </span>
+            <h2 className="text-xl font-black mt-1.5">Zero to Conversational</h2>
+            <p className="text-xs text-white/90 font-semibold mt-1">
+              Complete 5 tasks a day at ≥ 80% accuracy. Repeat lessons freely—repetition builds automatic speech reflexes.
+            </p>
+            <div className="mt-3 bg-black/15 rounded-2xl p-2.5 flex justify-between items-center text-xs font-extrabold">
+              <span>Current Map Mastery</span>
+              <span>{masteredTasksCount} / {totalTasksCount} Tasks</span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {phases.map((p, idx) => (
+              <div key={idx} className="bg-white rounded-2xl p-4 border-2 border-slate-200">
+                <span className="text-[11px] font-black text-[#1CB0F6] uppercase">{p.weeks}</span>
+                <h3 className="font-black text-slate-800 text-sm mt-0.5">{p.title}</h3>
+                <p className="text-xs text-slate-600 font-medium mt-1 leading-relaxed">{p.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ==================== INTERACTIVE LESSON RUNNER ====================
+    function LessonRunner({ lesson, onClose, onComplete }) {
+      const [queue, setQueue] = useState(lesson.deck);
+      const [index, setIndex] = useState(0);
+      const [selectedOption, setSelectedOption] = useState(null);
+      const [builtTiles, setBuiltTiles] = useState([]);
+      const [matchedPairIds, setMatchedPairIds] = useState([]);
+      const [selectedLeft, setSelectedLeft] = useState(null);
+      const [feedback, setFeedback] = useState(null); // { correct: bool, message: string }
+      const [stats, setStats] = useState({ totalAnswered: 0, firstTryCorrect: 0, byWord: {} });
+      const [finishedAccuracy, setFinishedAccuracy] = useState(null);
+
+      const current = queue[index];
+
+      // Shuffle right-hand column for pairs exercise
+      const rightPairs = useMemo(() => {
+        if (!current || current.kind !== "pairs") return [];
+        return [...current.words].sort(() => Math.random() - 0.5);
+      }, [index, current]);
+
+      useEffect(() => {
+        if (!current) return;
+        setSelectedOption(null);
+        setBuiltTiles([]);
+        setMatchedPairIds([]);
+        setSelectedLeft(null);
+        setFeedback(null);
+        if (current.word) {
+          speakMandarin(current.word.hanzi, 0.82);
+        }
+      }, [index, current]);
+
+      const recordWordAttempt = (wordId, isCorrect) => {
+        setStats(prev => {
+          const cur = prev.byWord[wordId] || { correct: 0, wrong: 0 };
+          return {
+            totalAnswered: prev.totalAnswered + 1,
+            firstTryCorrect: prev.firstTryCorrect + (isCorrect ? 1 : 0),
+            byWord: {
+              ...prev.byWord,
+              [wordId]: {
+                correct: cur.correct + (isCorrect ? 1 : 0),
+                wrong: cur.wrong + (isCorrect ? 0 : 1)
+              }
+            }
+          };
+        });
+      };
+
+      const advanceStep = () => {
+        if (index + 1 < queue.length) {
+          setIndex(index + 1);
+        } else {
+          const acc =
+            stats.totalAnswered === 0
+              ? 100
+              : Math.round((stats.firstTryCorrect / stats.totalAnswered) * 100);
+          setFinishedAccuracy(acc);
+        }
+      };
+
+      const checkChoiceAnswer = () => {
+        if (!selectedOption) return;
+        const isCorrect = selectedOption.id === current.word.id;
+        recordWordAttempt(current.word.id, isCorrect);
+        speakMandarin(current.word.hanzi, 0.85);
+        if (!isCorrect) {
+          // Re-queue missed card at the end for instant repetition mastery
+          setQueue(prev => [...prev, { ...current, isRetry: true }]);
+        }
+        setFeedback({
+          correct: isCorrect,
+          message: isCorrect
+            ? `Spot on! ${current.word.hanzi} (${current.word.pinyin})`
+            : `Answer: ${current.word.hanzi} (${current.word.pinyin}) — We'll re-drill this at the end!`
+        });
+      };
+
+      const checkTileAnswer = () => {
+        const userStr = builtTiles.join("");
+        const targetStr = current.word.tokens.join("");
+        const isCorrect = userStr === targetStr;
+        recordWordAttempt(current.word.id, isCorrect);
+        speakMandarin(current.word.hanzi, 0.85);
+        if (!isCorrect) {
+          setQueue(prev => [...prev, { ...current, isRetry: true }]);
+        }
+        setFeedback({
+          correct: isCorrect,
+          message: isCorrect
+            ? `Clean sentence! ${current.word.pinyin}`
+            : `Correct order: ${current.word.tokens.join(" ")} (${current.word.pinyin})`
+        });
+      };
+
+      const handlePairTap = (side, wordObj) => {
+        if (matchedPairIds.includes(wordObj.id)) return;
+        if (side === "left") {
+          speakMandarin(wordObj.hanzi, 0.85);
+          setSelectedLeft(wordObj.id);
+        } else if (side === "right" && selectedLeft) {
+          if (selectedLeft === wordObj.id) {
+            const nextMatched = [...matchedPairIds, wordObj.id];
+            setMatchedPairIds(nextMatched);
+            setSelectedLeft(null);
+            recordWordAttempt(wordObj.id, true);
+            if (nextMatched.length === current.words.length) {
+              setFeedback({ correct: true, message: "All pairs matched!" });
+            }
+          } else {
+            recordWordAttempt(selectedLeft, false);
+            setSelectedLeft(null);
+          }
+        }
+      };
+
+      // Completion Screen
+      if (finishedAccuracy !== null) {
+        const passed = finishedAccuracy >= 80;
+        return (
+          <div className="absolute inset-0 bg-white z-40 flex flex-col justify-between p-6 safe-top safe-bottom animate-pop">
+            <div />
+            <div className="text-center space-y-4">
+              <div className="text-6xl">{passed ? "🏆" : "💪"}</div>
+              <h2 className="text-2xl font-black text-slate-800">
+                {passed ? "Task Mastered!" : "Good Warm-Up!"}
+              </h2>
+              <p className="text-sm text-slate-600 font-semibold max-w-[280px] mx-auto">
+                {passed
+                  ? "You scored 80% or higher and unlocked progress toward the next Stage!"
+                  : "You need 80% to master this node. Run it again right now—repetition locks it in!"}
+              </p>
+
+              <div className="flex justify-center gap-4 pt-2">
+                <div className={`px-5 py-3 rounded-2xl border-2 ${passed ? "bg-emerald-50 border-emerald-300 text-emerald-700" : "bg-amber-50 border-amber-300 text-amber-700"}`}>
+                  <p className="text-[11px] font-black uppercase">Accuracy</p>
+                  <p className="text-2xl font-black">{finishedAccuracy}%</p>
+                </div>
+                <div className="px-5 py-3 rounded-2xl border-2 bg-sky-50 border-sky-200 text-sky-700">
+                  <p className="text-[11px] font-black uppercase">Earned</p>
+                  <p className="text-2xl font-black">+{Math.max(15, Math.round(finishedAccuracy * 0.4))} XP</p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onComplete(finishedAccuracy, stats.byWord)}
+              className="w-full py-4 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] active:translate-y-1 text-white font-black text-base"
+            >
+              Continue to Path
+            </button>
+          </div>
+        );
+      }
+
+      const pct = Math.round(((index + 1) / queue.length) * 100);
+
+      return (
+        <div className="absolute inset-0 bg-white z-40 flex flex-col safe-top safe-bottom">
+          {/* Top Progress Bar */}
+          <div className="px-4 pt-3 pb-2 flex items-center gap-3">
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1">
+              <Icon name="X" size={22} />
+            </button>
+            <div className="flex-1 h-3.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-[#58CC02] transition-all duration-300 rounded-full" style={{ width: `${pct}%` }} />
+            </div>
+            <span className="text-xs font-black text-sky-600">∞</span>
+          </div>
+
+          <div className="px-5 pt-1">
+            <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
+              {current.isRetry ? "🔁 Repeat Drill • Missed Card" : lesson.badge}
+            </span>
+          </div>
+
+          {/* Exercise Body */}
+          <div className="flex-1 px-5 py-3 flex flex-col justify-center overflow-y-auto">
+            {current.kind === "intro" && (
+              <div className="bg-sky-50 border-2 border-sky-200 rounded-3xl p-6 text-center space-y-4 animate-pop">
+                <span className="text-xs font-black uppercase tracking-widest bg-[#1CB0F6] text-white px-3 py-1 rounded-full">
+                  New Survival Phrase
+                </span>
+                <div className="py-2">
+                  <p className="text-4xl font-black text-slate-800">{current.word.hanzi}</p>
+                  <p className="text-lg font-extrabold text-[#1CB0F6] mt-1">{current.word.pinyin}</p>
+                  <p className="text-base font-bold text-slate-700 mt-2">{current.word.english}</p>
+                </div>
+
+                <div className="flex justify-center gap-3">
+                  <button
+                    onClick={() => speakMandarin(current.word.hanzi, 0.9)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white font-black text-xs active:translate-y-0.5"
+                  >
+                    <Icon name="Volume2" size={16} />
+                    <span>Listen 1.0x</span>
+                  </button>
+                  <button
+                    onClick={() => speakMandarin(current.word.hanzi, 0.55)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-400 border-b-4 border-amber-600 text-amber-950 font-black text-xs active:translate-y-0.5"
+                  >
+                    <span>🐢 Slow 0.55x</span>
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-600 bg-white p-3 rounded-2xl border border-sky-100 font-medium">
+                  💡 <strong>Memory Hook:</strong> {current.word.hook}
+                </p>
+              </div>
+            )}
+
+            {(current.kind === "listen_choose" || current.kind === "meaning_choose") && (
+              <div className="space-y-4 animate-pop">
+                <h3 className="text-lg font-black text-slate-800">
+                  {current.kind === "listen_choose"
+                    ? "Tap the speaker & choose the meaning:"
+                    : `How do you say "${current.word.english}"?`}
+                </h3>
+
+                {current.kind === "listen_choose" && (
+                  <div className="flex justify-center gap-3 py-2">
+                    <button
+                      onClick={() => speakMandarin(current.word.hanzi, 0.88)}
+                      className="w-20 h-20 rounded-3xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white flex flex-col items-center justify-center active:translate-y-1"
+                    >
+                      <Icon name="Volume2" size={30} />
+                      <span className="text-[10px] font-black mt-1">Listen</span>
+                    </button>
+                    <button
+                      onClick={() => speakMandarin(current.word.hanzi, 0.55)}
+                      className="w-16 h-20 rounded-3xl bg-amber-100 border-b-4 border-amber-300 text-amber-900 flex flex-col items-center justify-center active:translate-y-1"
+                    >
+                      <span className="text-xl">🐢</span>
+                      <span className="text-[10px] font-black mt-1">Slow</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="space-y-2.5">
+                  {current.options.map(opt => {
+                    const selected = selectedOption?.id === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        disabled={!!feedback}
+                        onClick={() => {
+                          setSelectedOption(opt);
+                          if (current.kind === "meaning_choose") speakMandarin(opt.hanzi, 0.88);
+                        }}
+                        className={`w-full p-3.5 rounded-2xl border-2 border-b-4 text-left transition-all ${
+                          selected
+                            ? "bg-[#DDF4FF] border-[#1CB0F6] text-sky-950"
+                            : "bg-white border-slate-200 text-slate-800"
+                        }`}
+                      >
+                        {current.kind === "listen_choose" ? (
+                          <p className="font-extrabold text-sm">{opt.english}</p>
+                        ) : (
+                          <div>
+                            <p className="font-black text-base">{opt.hanzi}</p>
+                            <p className="text-xs font-bold text-[#1CB0F6]">{opt.pinyin}</p>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {current.kind === "tile_build" && (
+              <div className="space-y-5 animate-pop">
+                <div>
+                  <h3 className="text-lg font-black text-slate-800">Build this phrase in Mandarin:</h3>
+                  <div className="mt-2 p-3 rounded-2xl bg-slate-100 flex items-center justify-between">
+                    <span className="font-extrabold text-slate-700 text-sm">"{current.word.english}"</span>
+                    <button
+                      onClick={() => speakMandarin(current.word.hanzi, 0.8)}
+                      className="p-2 rounded-xl bg-white text-[#1CB0F6] shadow-xs"
+                    >
+                      <Icon name="Volume2" size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Answer Tray */}
+                <div className="min-h-[64px] p-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-wrap gap-2 items-center">
+                  {builtTiles.length === 0 && (
+                    <span className="text-xs text-slate-400 font-semibold">Tap word tiles below...</span>
+                  )}
+                  {builtTiles.map((tok, i) => (
+                    <button
+                      key={i}
+                      disabled={!!feedback}
+                      onClick={() => setBuiltTiles(prev => prev.filter((_, idx) => idx !== i))}
+                      className="px-3.5 py-2 rounded-xl bg-[#1CB0F6] border-b-4 border-[#1899D6] text-white font-black text-base"
+                    >
+                      {tok}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Word Bank */}
+                <div className="flex flex-wrap gap-2.5 justify-center pt-2">
+                  {current.bank.map((tok, i) => (
+                    <button
+                      key={i}
+                      disabled={!!feedback}
+                      onClick={() => {
+                        speakMandarin(tok, 0.9);
+                        setBuiltTiles(prev => [...prev, tok]);
+                      }}
+                      className="px-4 py-2.5 rounded-2xl bg-white border-2 border-b-4 border-slate-300 active:translate-y-0.5 font-black text-slate-800 text-base"
+                    >
+                      {tok}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {current.kind === "pairs" && (
+              <div className="space-y-4 animate-pop">
+                <h3 className="text-lg font-black text-slate-800">Tap the matching Mandarin & English pairs:</h3>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-2.5">
+                    {current.words.map(w => {
+                      const matched = matchedPairIds.includes(w.id);
+                      const selected = selectedLeft === w.id;
+                      return (
+                        <button
+                          key={w.id}
+                          disabled={matched}
+                          onClick={() => handlePairTap("left", w)}
+                          className={`w-full p-3 rounded-2xl border-2 border-b-4 text-center transition-all ${
+                            matched
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-400 opacity-50"
+                              : selected
+                              ? "bg-[#DDF4FF] border-[#1CB0F6] text-sky-900"
+                              : "bg-white border-slate-200 text-slate-800"
+                          }`}
+                        >
+                          <p className="font-black text-sm">{w.hanzi}</p>
+                          <p className="text-[11px] font-bold text-[#1CB0F6]">{w.pinyin}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2.5">
+                    {rightPairs.map(w => {
+                      const matched = matchedPairIds.includes(w.id);
+                      return (
+                        <button
+                          key={w.id}
+                          disabled={matched}
+                          onClick={() => handlePairTap("right", w)}
+                          className={`w-full p-3 rounded-2xl border-2 border-b-4 text-center h-[62px] flex items-center justify-center transition-all ${
+                            matched
+                              ? "bg-emerald-50 border-emerald-200 text-emerald-400 opacity-50"
+                              : "bg-white border-slate-200 text-slate-700 active:bg-slate-100"
+                          }`}
+                        >
+                          <p className="font-extrabold text-xs">{w.english}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Check / Feedback Footer */}
+          <div className={`p-4 border-t-2 ${
+            feedback
+              ? feedback.correct
+                ? "bg-emerald-100 border-emerald-300"
+                : "bg-rose-100 border-rose-300"
+              : "bg-white border-slate-200"
+          }`}>
+            {feedback && (
+              <p className={`text-xs font-black mb-2.5 ${feedback.correct ? "text-emerald-800" : "text-rose-800"}`}>
+                {feedback.correct ? "✅ " : "❌ "}
+                {feedback.message}
+              </p>
+            )}
+
+            {current.kind === "intro" ? (
+              <button
+                onClick={advanceStep}
+                className="w-full py-3.5 rounded-2xl bg-[#58CC02] border-b-4 border-[#46A302] active:translate-y-0.5 text-white font-black text-sm"
+              >
+                Got It — Start Drill
+              </button>
+            ) : feedback ? (
+              <button
+                onClick={advanceStep}
+                className={`w-full py-3.5 rounded-2xl border-b-4 active:translate-y-0.5 text-white font-black text-sm ${
+                  feedback.correct ? "bg-[#58CC02] border-[#46A302]" : "bg-rose-500 border-rose-700"
+                }`}
+              >
+                Continue
+              </button>
+            ) : current.kind === "pairs" ? (
+              <button
+                disabled
+                className="w-full py-3.5 rounded-2xl bg-slate-200 text-slate-400 font-black text-sm"
+              >
+                Match All Pairs Above
+              </button>
+            ) : (
+              <button
+                disabled={
+                  (current.kind === "tile_build" && builtTiles.length === 0) ||
+                  ((current.kind === "listen_choose" || current.kind === "meaning_choose") && !selectedOption)
+                }
+                onClick={current.kind === "tile_build" ? checkTileAnswer : checkChoiceAnswer}
+                className="w-full py-3.5 rounded-2xl bg-[#58CC02] disabled:bg-slate-200 disabled:border-slate-300 disabled:text-slate-400 border-b-4 border-[#46A302] active:translate-y-0.5 text-white font-black text-sm"
+              >
+                Check Answer
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
